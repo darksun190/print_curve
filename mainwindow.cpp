@@ -22,6 +22,8 @@ MainWindow::MainWindow(QWidget *parent) :
     //test for git
     //test for git push config file
 
+    //what happen...
+
     printer.setPaperSize(QPrinter::A4); //A4 in pixel is 1122.52 * 793.701
     printer.setOrientation(QPrinter::Landscape);
     printer.setOutputFormat(QPrinter::PdfFormat);
