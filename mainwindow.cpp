@@ -19,6 +19,8 @@ MainWindow::MainWindow(QWidget *parent) :
     //init the printer paper size and type
     //this is very important for the display and save file.
 
+    //test for git
+
     printer.setPaperSize(QPrinter::A4); //A4 in pixel is 1122.52 * 793.701
     printer.setOrientation(QPrinter::Landscape);
     printer.setOutputFormat(QPrinter::PdfFormat);
