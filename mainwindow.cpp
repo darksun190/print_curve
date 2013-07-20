@@ -20,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent) :
     //this is very important for the display and save file.
 
     //test for git
+    //test for git push config file
 
     printer.setPaperSize(QPrinter::A4); //A4 in pixel is 1122.52 * 793.701
     printer.setOrientation(QPrinter::Landscape);
