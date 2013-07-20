@@ -68,6 +68,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QTextStream in_nom(&nom_file);
     QTextStream in_act(&act_file);
 
+    //set the log file
+    logo = new QPixmap(":/logo.bmp");
+
     // get the origin data from special program
     while(1)
     {
@@ -144,7 +147,7 @@ MainWindow::MainWindow(QWidget *parent) :
     nom_points = new QPointF[data->size()];
     for(int i=0;i<data->size();++i)
     {
-        nom_points[i]=QPointF(data->at(i).x_nom,data->at(i).y_nom);
+        nom_points[i]=QPointF(data->at(i).x_nom,-data->at(i).y_nom);
     }
 
     //start to generate bezier control Points
@@ -269,6 +272,7 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::paintEvent(QPaintEvent *)
 {
     QPainter painter(this);
+    painter.save();
     //fist, draw a rounded rect for header & graphic area;
     painter.drawRoundedRect(header_area,15,15);
     painter.drawRoundedRect(curve_area.x(),curve_area.y(),curve_area.width(),table_area.y()+table_area.height(),15,15);
@@ -276,17 +280,53 @@ void MainWindow::paintEvent(QPaintEvent *)
 
     painter.setPen(Qt::SolidLine);
 
-    QPen nom_line_pen(Qt::black, 0, Qt::SolidLine);
+    QPen nom_line_pen(Qt::black, 2, Qt::SolidLine);
+    QPen act_line_pen(Qt::blue, 2 ,Qt::SolidLine);
 
     //move the painter to the left mid position
     painter.translate(curve_area.x(),curve_area.center().y());
 
+    //draw coordinate axis
+    QPen axis_pen(Qt::blue,1,Qt::SolidLine);
+    painter.setPen(axis_pen);
+    painter.drawLine(0,0,curve_area.width(),0);
+    painter.drawLine(curve_area.width()/2,curve_area.height()/2,curve_area.width()/2,-curve_area.height()/2);
 
+    //draw nominal und actual curves
     painter.setPen(nom_line_pen);
     painter.drawPath(*nom_path);
-    painter.setPen(Qt::blue);
+    painter.setPen(act_line_pen);
     painter.drawPath(*act_path);
     //painter.drawPoints(nom_points,data->size());
+
+    //draw nominal points as single points
+    for(int i=0;i<origin_data->size();++i)
+    {
+        painter.drawEllipse(nom_points[i],1.2,1.2);
+    }
+
+    //draw data tables
+    painter.restore();
+    painter.save();
+    painter.translate(table_area.x(),table_area.y());
+    for (int i=0;i<14;++i)  //just for test, offical release need auto adjust
+    {
+        painter.drawText(10+i*60,10,50,150,Qt::AlignCenter,
+                         QString("%1\n%2\n%3\n%4")
+                            .arg(i+1)
+                            .arg(origin_data->at(i).x_nom)
+                            .arg(origin_data->at(i).y_nom)
+                            .arg(origin_data->at(i).y_act));
+    }
+    //draw a header and LOGO
+    painter.restore();
+    painter.drawPixmap(header_area.x()+20,header_area.y()+1,header_area.height()-2,header_area.height()-2,*logo);
+    painter.translate(header_area.center().x()-150,header_area.y());        //just for test
+
+    QFont header_font("Blackadder ITC",20);
+    painter.setFont(header_font);
+    painter.drawText(0,0,300,header_area.height(),Qt::AlignCenter,QString("Just test, Curve Report by Sean"));
+
 }
 
 MainWindow::~MainWindow()
@@ -314,21 +354,59 @@ void MainWindow::on_pushButton_clicked()
         qWarning("failed to open file, is it writable?");
         return ;
     }
+    painter.save();
+    //fist, draw a rounded rect for header & graphic area;
     painter.drawRoundedRect(header_area,15,15);
     painter.drawRoundedRect(curve_area.x(),curve_area.y(),curve_area.width(),table_area.y()+table_area.height(),15,15);
     painter.drawRoundedRect(curve_area,15,15);
 
     painter.setPen(Qt::SolidLine);
 
-    QPen nom_line_pen(Qt::black, 0, Qt::SolidLine);
+    QPen nom_line_pen(Qt::black, 2, Qt::SolidLine);
+    QPen act_line_pen(Qt::blue, 2 ,Qt::SolidLine);
 
     //move the painter to the left mid position
     painter.translate(curve_area.x(),curve_area.center().y());
 
+    //draw coordinate axis
+    QPen axis_pen(Qt::blue,1,Qt::SolidLine);
+    painter.setPen(axis_pen);
+    painter.drawLine(0,0,curve_area.width(),0);
+    painter.drawLine(curve_area.width()/2,curve_area.height()/2,curve_area.width()/2,-curve_area.height()/2);
 
+    //draw nominal und actual curves
     painter.setPen(nom_line_pen);
     painter.drawPath(*nom_path);
-    painter.setPen(Qt::blue);
+    painter.setPen(act_line_pen);
     painter.drawPath(*act_path);
+    //painter.drawPoints(nom_points,data->size());
+
+    //draw nominal points as single points
+    for(int i=0;i<origin_data->size();++i)
+    {
+        painter.drawEllipse(nom_points[i],1.2,1.2);
+    }
+
+    //draw data tables
+    painter.restore();
+    painter.save();
+    painter.translate(table_area.x(),table_area.y());
+    for (int i=0;i<14;++i)  //just for test, offical release need auto adjust
+    {
+        painter.drawText(10+i*60,10,50,150,Qt::AlignCenter,
+                         QString("%1\n%2\n%3\n%4")
+                            .arg(i+1)
+                            .arg(origin_data->at(i).x_nom)
+                            .arg(origin_data->at(i).y_nom)
+                            .arg(origin_data->at(i).y_act));
+    }
+    //draw a header and LOGO
+    painter.restore();
+    painter.drawPixmap(header_area.x()+20,header_area.y()+1,header_area.height()-2,header_area.height()-2,*logo);
+    painter.translate(header_area.center().x()-150,header_area.y());        //just for test
+
+    QFont header_font("Blackadder ITC",20);
+    painter.setFont(header_font);
+    painter.drawText(0,0,300,header_area.height(),Qt::AlignCenter,QString("Just test, Curve Report by Sean"));
 
 }

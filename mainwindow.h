@@ -12,6 +12,7 @@
 #include <QPrinter>
 #include <QFileDialog>
 #include <QtGlobal>
+#include <QPixmap>
 
 class point{
 public:
@@ -70,7 +71,7 @@ private:
     QRectF curve_range;
     QPointF curve_translate;
     qreal scale_x,scale_y;
-
+    QPixmap *logo;
 };
 
 #endif // MAINWINDOW_H
