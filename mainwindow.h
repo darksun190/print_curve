@@ -16,9 +16,9 @@
 class point{
 public:
     point();
-    point(double,double,double,double);
-
-   double x_nom,x_act,y_nom,y_act;
+    point(double xnom,double ynom,double xact,double yact);
+public:
+    double x_nom,x_act,y_nom,y_act;
 };
 
 
@@ -38,6 +38,8 @@ private slots:
     void on_pushButton_clicked();
 
 private:
+
+    QVector <point> *origin_data;
     QVector <point> *data;
     Ui::MainWindow *ui;
     void paintEvent(QPaintEvent *);

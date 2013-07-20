@@ -1,11 +1,11 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-point::point(double a,double b,double c,double d)
+point::point(double xnom, double ynom, double xact, double yact)
 {
-    this->x_nom=a;
-    this->y_nom=b;
-    this->x_act=c;
-    this->y_act=d;
+    this->x_nom=xnom;
+    this->y_nom=ynom;
+    this->x_act=xact;
+    this->y_act=yact;
 }
 point::point()
 {}
@@ -19,10 +19,6 @@ MainWindow::MainWindow(QWidget *parent) :
     //init the printer paper size and type
     //this is very important for the display and save file.
 
-    //test for git
-    //test for git push config file
-
-    //what happen...
 
     printer.setPaperSize(QPrinter::A4); //A4 in pixel is 1122.52 * 793.701
     printer.setOrientation(QPrinter::Landscape);
@@ -52,6 +48,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //get the data from calypso
     data = new QVector<point>();
+    origin_data = new QVector<point>();
     QDir base_dir ("../../home/om/"); //~/zeiss/home/om dir
     QDir trans_dir ("../tmp/"); //dir for files;
     QFile ele_xml_file (QString("%1/ElementsToSpecialProgram.xml").arg(trans_dir.absolutePath()));
@@ -90,54 +87,65 @@ MainWindow::MainWindow(QWidget *parent) :
             xa = buf2.mid(index_space+1,buf2.indexOf(" ",index_space+1)-index_space-1).toDouble();
             index_space = buf2.indexOf(" ",index_space+1);
             ya = buf2.mid(index_space+1,buf2.indexOf(" ",index_space+1)-index_space-1).toDouble();
-            data->push_back(point(xn,yn,xa,ya));
-
-
+            origin_data->push_back(point(xn,yn,xa,ya));
        }
-
     }
 
     //calculate the range of the curve
     {
         qreal max_x,max_y,min_x,min_y;
-        max_x = min_x = data->at(0).x_nom;
-        max_y = min_y = data->at(0).y_nom;
-        for (int i=0;i<data->size();++i)
+        max_x = min_x = origin_data->at(0).x_nom;
+        max_y = min_y = origin_data->at(0).y_nom;
+        for (int i=0;i<origin_data->size();++i)
         {
-            if(data->at(i).x_nom>max_x)
-                max_x = data->at(i).x_nom;
-            if(data->at(i).y_nom>max_y)
-                max_y = data->at(i).y_nom;
-            if(data->at(i).x_nom<min_x)
-                min_x = data->at(i).x_nom;
-            if(data->at(i).y_nom<min_y)
-                min_y = data->at(i).y_nom;
+            if(origin_data->at(i).x_nom>max_x)
+                max_x = origin_data->at(i).x_nom;
+            if(origin_data->at(i).y_nom>max_y)
+                max_y = origin_data->at(i).y_nom;
+            if(origin_data->at(i).x_nom<min_x)
+                min_x = origin_data->at(i).x_nom;
+            if(origin_data->at(i).y_nom<min_y)
+                min_y = origin_data->at(i).y_nom;
 
-            if(data->at(i).x_act>max_x)
-                max_x = data->at(i).x_act;
-            if(data->at(i).y_act>max_y)
-                max_y = data->at(i).y_act;
-            if(data->at(i).x_act<min_x)
-                min_x = data->at(i).x_act;
-            if(data->at(i).y_act<min_y)
-                min_y = data->at(i).y_act;
+            if(origin_data->at(i).x_act>max_x)
+                max_x = origin_data->at(i).x_act;
+            if(origin_data->at(i).y_act>max_y)
+                max_y = origin_data->at(i).y_act;
+            if(origin_data->at(i).x_act<min_x)
+                min_x = origin_data->at(i).x_act;
+            if(origin_data->at(i).y_act<min_y)
+                min_y = origin_data->at(i).y_act;
         }
         curve_range = QRectF(min_x,min_y,max_x-min_x,max_y-min_y);
-        qDebug()<<curve_range;
     }
+
+    //get the translate date from the origin data;
+
+    curve_translate =  QPointF(-curve_range.x(),-curve_range.center().y());
+    scale_x = curve_area.width()/curve_range.width();
+    scale_y = curve_area.height()/curve_range.height();
 
     //as the painter scale didn't work well,
     //modify all the curve data to adapting the moniter und pdf file.
+    {
+        //start translate
+        for(int i=0;i<origin_data->size();++i)
+        {
+            point temp((origin_data->at(i).x_nom+curve_translate.x())*scale_x,
+                        (origin_data->at(i).y_nom+curve_translate.y())*scale_y,
+                        (origin_data->at(i).x_act+curve_translate.x())*scale_x,
+                        (origin_data->at(i).y_act+curve_translate.y())*scale_y
+                        );
+            data->push_back(temp);
+        }
+    }
 
+    // make this data to a group to display by painter.drawPoints
     nom_points = new QPointF[data->size()];
     for(int i=0;i<data->size();++i)
     {
         nom_points[i]=QPointF(data->at(i).x_nom,data->at(i).y_nom);
     }
-    curve_translate =  QPointF(left_margin-curve_range.x(),
-                               curve_area.bottom()+curve_range.bottom());
-    scale_x = curve_area.width()/curve_range.width();
-    scale_y = curve_area.height()/curve_range.height();
 
     //start to generate bezier control Points
     {
@@ -268,17 +276,16 @@ void MainWindow::paintEvent(QPaintEvent *)
 
     painter.setPen(Qt::SolidLine);
 
-    //painter.drawLine(-300,-300,300,300);
     QPen nom_line_pen(Qt::black, 0, Qt::SolidLine);
 
-    painter.translate(curve_translate);
-    //painter.scale(scale_x,scale_y);
-    painter.scale(5,1);
+    //move the painter to the left mid position
+    painter.translate(curve_area.x(),curve_area.center().y());
+
+
     painter.setPen(nom_line_pen);
     painter.drawPath(*nom_path);
     painter.setPen(Qt::blue);
     painter.drawPath(*act_path);
-    //painter.setPen( QPen(Qt::green, 0.001, Qt::DashDotLine, Qt::RoundCap, Qt::RoundJoin));
     //painter.drawPoints(nom_points,data->size());
 }
 
@@ -300,25 +307,28 @@ void MainWindow::on_pushButton_clicked()
                                                     tr("PDF Files (*.pdf)"),
                                                     &selectedFilter,
                                                     options);
-    fileName.append("pdf");
+    fileName.append(".pdf");
     printer.setOutputFileName(fileName);
     QPainter painter;
     if (! painter.begin(&printer)) { // failed to open file
         qWarning("failed to open file, is it writable?");
         return ;
     }
+    painter.drawRoundedRect(header_area,15,15);
+    painter.drawRoundedRect(curve_area.x(),curve_area.y(),curve_area.width(),table_area.y()+table_area.height(),15,15);
+    painter.drawRoundedRect(curve_area,15,15);
+
     painter.setPen(Qt::SolidLine);
 
-    //painter.drawLine(-300,-300,300,300);
     QPen nom_line_pen(Qt::black, 0, Qt::SolidLine);
-    painter.drawRect(5,5,1113,783);
-    painter.translate(curve_translate);
-    painter.scale(scale_x,scale_y);
+
+    //move the painter to the left mid position
+    painter.translate(curve_area.x(),curve_area.center().y());
 
 
     painter.setPen(nom_line_pen);
     painter.drawPath(*nom_path);
     painter.setPen(Qt::blue);
     painter.drawPath(*act_path);
-    painter.end();
+
 }
