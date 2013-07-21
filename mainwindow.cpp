@@ -309,6 +309,7 @@ void MainWindow::paintEvent(QPaintEvent *)
     painter.restore();
     painter.save();
     painter.translate(table_area.x(),table_area.y());
+    painter.setFont(QFont("Times New Roman",10));
     for (int i=0;i<14;++i)  //just for test, offical release need auto adjust
     {
         painter.drawText(10+i*60,10,50,150,Qt::AlignCenter,
@@ -316,7 +317,7 @@ void MainWindow::paintEvent(QPaintEvent *)
                             .arg(i+1)
                             .arg(origin_data->at(i).x_nom)
                             .arg(origin_data->at(i).y_nom)
-                            .arg(origin_data->at(i).y_act));
+                            .arg( QString::number(origin_data->at(i).y_act,'f',4)));
     }
     //draw a header and LOGO
     painter.restore();
@@ -391,6 +392,7 @@ void MainWindow::on_pushButton_clicked()
     painter.restore();
     painter.save();
     painter.translate(table_area.x(),table_area.y());
+    painter.setFont(QFont("Times New Roman",10));
     for (int i=0;i<14;++i)  //just for test, offical release need auto adjust
     {
         painter.drawText(10+i*60,10,50,150,Qt::AlignCenter,
@@ -398,7 +400,7 @@ void MainWindow::on_pushButton_clicked()
                             .arg(i+1)
                             .arg(origin_data->at(i).x_nom)
                             .arg(origin_data->at(i).y_nom)
-                            .arg(origin_data->at(i).y_act));
+                         .arg( QString::number(origin_data->at(i).y_act,'f',4)));
     }
     //draw a header and LOGO
     painter.restore();
