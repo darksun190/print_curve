@@ -5,12 +5,12 @@
 
 bool compare_X(const point a,const point b)
 {
-    return a.x>b.x;
+    return a.x<b.x;
 }
 
 bool compare_Y(const point a,const point b)
 {
-    return a.y>b.y;
+    return a.y<b.y;
 }
 
 
@@ -59,28 +59,25 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //set the log file
     logo = new QPixmap(":/logo.bmp");
-    qDebug()<<xml_info.names.at(0).nom_points.size();
     // get the origin data from special program
     nom_data = new QVector<point> (xml_info.names.at(0).nom_points);
     act_data = new QVector<point> (xml_info.names.at(0).act_points);
-    qDebug()<<nom_data->at(14).x;
-    qDebug()<<xml_info.names.at(0).nom_points.at(14).x;
-    //calculate the range of the curve
+   //calculate the range of the curve
     {
         qreal max_x,max_y,min_x,min_y;
         max_x = qMax((* std::max_element(nom_data->begin(),nom_data->end(),compare_X)).x,(*std::max_element(act_data->begin(),act_data->end(),compare_X)).x);
         min_x = qMin((* std::min_element(nom_data->begin(),nom_data->end(),compare_X)).x,(*std::min_element(act_data->begin(),act_data->end(),compare_X)).x);
         max_y = qMax((* std::max_element(nom_data->begin(),nom_data->end(),compare_Y)).y,(*std::max_element(act_data->begin(),act_data->end(),compare_Y)).y);
         min_y = qMin((* std::min_element(nom_data->begin(),nom_data->end(),compare_Y)).y,(*std::min_element(act_data->begin(),act_data->end(),compare_Y)).y);
-
         curve_range = QRectF(min_x,min_y,max_x-min_x,max_y-min_y);
+        qDebug()<<max_x<<min_x<<max_y<<min_y;
     }
 
     //get the translate date from the origin data;
 
     curve_translate =  QPointF(-curve_range.x(),-curve_range.center().y());
-    scale_x = curve_area.width()/curve_range.width();
-    scale_y = curve_area.height()/curve_range.height();
+    scale_x = (curve_area.width()-gap*2)/curve_range.width();
+    scale_y = (curve_area.height()-gap*2)/curve_range.height();
 
     //as the painter scale didn't work well,
     //modify all the curve data to adapting the moniter und pdf file.

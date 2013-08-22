@@ -19,8 +19,8 @@ HEADERS  += mainwindow.h
 
 FORMS    += mainwindow.ui
 
-INCLUDEPATH     += C:\sunxin\libs\sp_xmlread
-LIBS            += C:\sunxin\libs\sp_xmlread\release\libsp_xmlread.a
+INCLUDEPATH     += C:\Qt\include
+LIBS            += C:\Qt\libs\libsp_xmlread.a
 
 RESOURCES += \
     logo.qrc
