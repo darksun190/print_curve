@@ -1,14 +1,18 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-pointV::pointV(double xnom, double ynom, double xact, double yact)
+#include <math.h>
+#include <qmath.h>
+
+bool compare_X(const point a,const point b)
 {
-    this->x_nom=xnom;
-    this->y_nom=ynom;
-    this->x_act=xact;
-    this->y_act=yact;
+    return a.x>b.x;
 }
-pointV::pointV()
-{}
+
+bool compare_Y(const point a,const point b)
+{
+    return a.y>b.y;
+}
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -47,78 +51,28 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButton->move(papersize.width()-right_margin+5,papersize.height()-200);
 
     //get the data from calypso
-    data = new QVector<pointV>();
-    origin_data = new QVector<pointV>();
-    QDir base_dir ("../../home/om/"); //~/zeiss/home/om dir
-    QDir trans_dir ("../tmp/"); //dir for files;
-    QFile ele_xml_file (QString("%1/ElementsToSpecialProgram.xml").arg(trans_dir.absolutePath()));
-    QFile sys_xml_file (QString("%1/SysParaToSpecialProgram.xml").arg(trans_dir.absolutePath()));
 
     Sp_xmlread xml_info("../tmp/");
 
     QString fileName = xml_info.names.at(0).Identifier;
-
-    QFile nom_file(QString("../tmp/%1_NomPoints.txt").arg(fileName));
-    QFile act_file(QString("../tmp/%1_ActPoints.txt").arg(fileName));
-
-
-    nom_file.open(QFile::ReadOnly|QFile::Text);
-    act_file.open(QFile::ReadOnly|QFile::Text);
-
-    QTextStream in_nom(&nom_file);
-    QTextStream in_act(&act_file);
+    size = xml_info.names.at(0).act_points.size();
 
     //set the log file
     logo = new QPixmap(":/logo.bmp");
-
+    qDebug()<<xml_info.names.at(0).nom_points.size();
     // get the origin data from special program
-    while(1)
-    {
-        QString buf1,buf2;
-        buf1 = in_nom.readLine();
-        buf2 = in_act.readLine();
-        if(buf1.isNull())
-            break;
-        double xn,xa,yn,ya;
-        {
-            int index_space;
-            index_space = buf1.indexOf(" ");
-            xn = buf1.mid(index_space+1,buf1.indexOf(" ",index_space+1)-index_space-1).toDouble();
-            index_space = buf1.indexOf(" ",index_space+1);
-            yn = buf1.mid(index_space+1,buf1.indexOf(" ",index_space+1)-index_space-1).toDouble();
-            index_space = buf2.indexOf(" ");
-            xa = buf2.mid(index_space+1,buf2.indexOf(" ",index_space+1)-index_space-1).toDouble();
-            index_space = buf2.indexOf(" ",index_space+1);
-            ya = buf2.mid(index_space+1,buf2.indexOf(" ",index_space+1)-index_space-1).toDouble();
-            origin_data->push_back(pointV(xn,yn,xa,ya));
-       }
-    }
-
+    nom_data = new QVector<point> (xml_info.names.at(0).nom_points);
+    act_data = new QVector<point> (xml_info.names.at(0).act_points);
+    qDebug()<<nom_data->at(14).x;
+    qDebug()<<xml_info.names.at(0).nom_points.at(14).x;
     //calculate the range of the curve
     {
         qreal max_x,max_y,min_x,min_y;
-        max_x = min_x = origin_data->at(0).x_nom;
-        max_y = min_y = origin_data->at(0).y_nom;
-        for (int i=0;i<origin_data->size();++i)
-        {
-            if(origin_data->at(i).x_nom>max_x)
-                max_x = origin_data->at(i).x_nom;
-            if(origin_data->at(i).y_nom>max_y)
-                max_y = origin_data->at(i).y_nom;
-            if(origin_data->at(i).x_nom<min_x)
-                min_x = origin_data->at(i).x_nom;
-            if(origin_data->at(i).y_nom<min_y)
-                min_y = origin_data->at(i).y_nom;
+        max_x = qMax((* std::max_element(nom_data->begin(),nom_data->end(),compare_X)).x,(*std::max_element(act_data->begin(),act_data->end(),compare_X)).x);
+        min_x = qMin((* std::min_element(nom_data->begin(),nom_data->end(),compare_X)).x,(*std::min_element(act_data->begin(),act_data->end(),compare_X)).x);
+        max_y = qMax((* std::max_element(nom_data->begin(),nom_data->end(),compare_Y)).y,(*std::max_element(act_data->begin(),act_data->end(),compare_Y)).y);
+        min_y = qMin((* std::min_element(nom_data->begin(),nom_data->end(),compare_Y)).y,(*std::min_element(act_data->begin(),act_data->end(),compare_Y)).y);
 
-            if(origin_data->at(i).x_act>max_x)
-                max_x = origin_data->at(i).x_act;
-            if(origin_data->at(i).y_act>max_y)
-                max_y = origin_data->at(i).y_act;
-            if(origin_data->at(i).x_act<min_x)
-                min_x = origin_data->at(i).x_act;
-            if(origin_data->at(i).y_act<min_y)
-                min_y = origin_data->at(i).y_act;
-        }
         curve_range = QRectF(min_x,min_y,max_x-min_x,max_y-min_y);
     }
 
@@ -130,45 +84,44 @@ MainWindow::MainWindow(QWidget *parent) :
 
     //as the painter scale didn't work well,
     //modify all the curve data to adapting the moniter und pdf file.
+    QVector <QPair <double,double> > nom_transfer_data;
+    QVector <QPair <double,double> > act_transfer_data;
+
+    //start translate
+    for(int i=0;i<size;++i)
     {
-        //start translate
-        for(int i=0;i<origin_data->size();++i)
-        {
-            pointV temp((origin_data->at(i).x_nom+curve_translate.x())*scale_x,
-                        (origin_data->at(i).y_nom+curve_translate.y())*scale_y,
-                        (origin_data->at(i).x_act+curve_translate.x())*scale_x,
-                        (origin_data->at(i).y_act+curve_translate.y())*scale_y
-                        );
-            data->push_back(temp);
-        }
+        nom_transfer_data.push_back(QPair<double,double> ((nom_data->at(i).x+curve_translate.x())*scale_x,
+                                                          -(nom_data->at(i).y+curve_translate.y())*scale_y));
+        act_transfer_data.push_back(QPair<double,double> ((act_data->at(i).x+curve_translate.x())*scale_x,
+                                                          -(act_data->at(i).y+curve_translate.y())*scale_y));
     }
 
+
     // make this data to a group to display by painter.drawPoints
-    nom_points = new QPointF[data->size()];
-    for(int i=0;i<data->size();++i)
+
+    for(int i=0;i<size;++i)
     {
-        nom_points[i]=QPointF(data->at(i).x_nom,-data->at(i).y_nom);
+        nom_points.push_back(QPointF(nom_transfer_data.at(i).first,-nom_transfer_data.at(i).second));
     }
 
     //start to generate bezier control Points
     {
         //the first end last point was delete, just for calc the vector
-        int data_size = data->size();
 
         //nom_control_points
         {
             nom_control_points = new QVector <QPair <double,double> >();
             int index;
-            for(index = 1;index<data_size-2;index++)
+            for(index = 1;index<size-2;index++)
             {
                 QPair <double,double> Qi0,Qi,Qi1,Qi2;
                 QPair <double,double> Pi0,Pi1,Pi2,Pi3;
                 QPair <double,double> Ti0,Ti1;
 
-                Qi0 = QPair<double,double> (data->at(index-1).x_nom,data->at(index-1).y_nom);
-                Qi =  QPair<double,double> (data->at(index).x_nom,data->at(index).y_nom);
-                Qi1 =  QPair<double,double> (data->at(index+1).x_nom,data->at(index+1).y_nom);
-                Qi2 =  QPair<double,double> (data->at(index+2).x_nom,data->at(index+2).y_nom);
+                Qi0 = QPair<double,double> (nom_transfer_data.at(index-1).first,nom_transfer_data.at(index-1).second);
+                Qi =  QPair<double,double> (nom_transfer_data.at(index).first,nom_transfer_data.at(index).second);
+                Qi1 =  QPair<double,double> (nom_transfer_data.at(index+1).first,nom_transfer_data.at(index+1).second);
+                Qi2 =  QPair<double,double> (nom_transfer_data.at(index+2).first,nom_transfer_data.at(index+2).second);
                 Ti0.first = (Qi1.first-Qi0.first)/2;
                 Ti0.second = (Qi1.second-Qi0.second)/2;
                 Ti1.first = -(Qi2.first-Qi.first)/2;
@@ -193,16 +146,16 @@ MainWindow::MainWindow(QWidget *parent) :
         {
             act_control_points = new QVector <QPair <double,double> >();
             int index;
-            for(index = 1;index<data_size-2;index++)
+            for(index = 1;index<size-2;index++)
             {
                 QPair <double,double> Qi0,Qi,Qi1,Qi2;
                 QPair <double,double> Pi0,Pi1,Pi2,Pi3;
                 QPair <double,double> Ti0,Ti1;
 
-                Qi0 = QPair<double,double> (data->at(index-1).x_act,data->at(index-1).y_act);
-                Qi =  QPair<double,double> (data->at(index).x_act,data->at(index).y_act);
-                Qi1 =  QPair<double,double> (data->at(index+1).x_act,data->at(index+1).y_act);
-                Qi2 =  QPair<double,double> (data->at(index+2).x_act,data->at(index+2).y_act);
+                Qi0 = QPair<double,double> (act_transfer_data.at(index-1).first,act_transfer_data.at(index-1).second);
+                Qi =  QPair<double,double> (act_transfer_data.at(index).first,act_transfer_data.at(index).second);
+                Qi1 =  QPair<double,double> (act_transfer_data.at(index+1).first,act_transfer_data.at(index+1).second);
+                Qi2 =  QPair<double,double> (act_transfer_data.at(index+2).first,act_transfer_data.at(index+2).second);
                 Ti0.first = (Qi1.first-Qi0.first)/2;
                 Ti0.second = (Qi1.second-Qi0.second)/2;
                 Ti1.first = -(Qi2.first-Qi.first)/2;
@@ -300,7 +253,7 @@ void MainWindow::paintEvent(QPaintEvent *)
     //painter.drawPoints(nom_points,data->size());
 
     //draw nominal points as single points
-    for(int i=0;i<origin_data->size();++i)
+    for(int i=0;i<size;++i)
     {
         painter.drawEllipse(nom_points[i],1.2,1.2);
     }
@@ -315,9 +268,9 @@ void MainWindow::paintEvent(QPaintEvent *)
         painter.drawText(10+i*60,10,50,150,Qt::AlignCenter,
                          QString("%1\n%2\n%3\n%4")
                             .arg(i+1)
-                            .arg(origin_data->at(i).x_nom)
-                            .arg(origin_data->at(i).y_nom)
-                            .arg( QString::number(origin_data->at(i).y_act,'f',4)));
+                         .arg(nom_data->at(i).x)
+                         .arg(nom_data->at(i).y)
+                            .arg( QString::number(act_data->at(i).y,'f',4)));
     }
     painter.translate(0,90);
     for (int i=14;i<28;++i)  //just for test, offical release need auto adjust
@@ -325,9 +278,9 @@ void MainWindow::paintEvent(QPaintEvent *)
         painter.drawText(10+(i-14)*60,10,50,150,Qt::AlignCenter,
                          QString("%1\n%2\n%3\n%4")
                             .arg(i+1)
-                            .arg(origin_data->at(i).x_nom)
-                            .arg(origin_data->at(i).y_nom)
-                            .arg( QString::number(origin_data->at(i).y_act,'f',4)));
+                            .arg(nom_data->at(i).x)
+                            .arg(nom_data->at(i).y)
+                            .arg( QString::number(act_data->at(i).y,'f',4)));
     }
 
     //draw a header and LOGO
@@ -394,7 +347,7 @@ void MainWindow::on_pushButton_clicked()
     //painter.drawPoints(nom_points,data->size());
 
     //draw nominal points as single points
-    for(int i=0;i<origin_data->size();++i)
+    for(int i=0;i<size;++i)
     {
         painter.drawEllipse(nom_points[i],1.2,1.2);
     }
@@ -409,9 +362,9 @@ void MainWindow::on_pushButton_clicked()
         painter.drawText(10+i*60,10,50,150,Qt::AlignCenter,
                          QString("%1\n%2\n%3\n%4")
                             .arg(i+1)
-                            .arg(origin_data->at(i).x_nom)
-                            .arg(origin_data->at(i).y_nom)
-                         .arg( QString::number(origin_data->at(i).y_act,'f',4)));
+                         .arg(nom_data->at(i).x)
+                         .arg(nom_data->at(i).y)
+                            .arg( QString::number(act_data->at(i).y,'f',4)));
     }
     painter.translate(0,90);
     for (int i=14;i<28;++i)  //just for test, offical release need auto adjust
@@ -419,9 +372,9 @@ void MainWindow::on_pushButton_clicked()
         painter.drawText(10+(i-14)*60,10,50,150,Qt::AlignCenter,
                          QString("%1\n%2\n%3\n%4")
                             .arg(i+1)
-                            .arg(origin_data->at(i).x_nom)
-                            .arg(origin_data->at(i).y_nom)
-                            .arg( QString::number(origin_data->at(i).y_act,'f',4)));
+                         .arg(nom_data->at(i).x)
+                         .arg(nom_data->at(i).y)
+                         .arg( QString::number(act_data->at(i).y,'f',4)));
     }
 
     //draw a header and LOGO

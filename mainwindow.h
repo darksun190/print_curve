@@ -14,14 +14,6 @@
 #include <QtGlobal>
 #include <QPixmap>
 
-class pointV{
-public:
-    pointV();
-    pointV(double xnom,double ynom,double xact,double yact);
-public:
-    double x_nom,x_act,y_nom,y_act;
-};
-
 
 namespace Ui {
 class MainWindow;
@@ -40,12 +32,13 @@ private slots:
 
 private:
 
-    QVector <pointV> *origin_data;
-    QVector <pointV> *data;
+
     Ui::MainWindow *ui;
     void paintEvent(QPaintEvent *);
     QVector <QPair <double,double> > *nom_control_points;
     QVector <QPair <double,double> > *act_control_points;
+    QVector <point> *nom_data;
+    QVector <point> *act_data;
 
     QRectF *area_graphic;
     QRectF *area_table;
@@ -53,8 +46,9 @@ private:
 
     QPainterPath *nom_path;
     QPainterPath *act_path;
-    QPointF *nom_points;
+    QVector <QPointF> nom_points;
 
+    int size;       //point size
     //value in pixel for printer margin
 
     qreal left_margin;
