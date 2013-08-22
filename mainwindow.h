@@ -9,15 +9,15 @@
 #include <QRectF>
 #include <QPainter>
 #include <QPair>
-#include <QPrinter>
+#include <QtPrintSupport/QPrinter>
 #include <QFileDialog>
 #include <QtGlobal>
 #include <QPixmap>
 
-class point{
+class pointV{
 public:
-    point();
-    point(double xnom,double ynom,double xact,double yact);
+    pointV();
+    pointV(double xnom,double ynom,double xact,double yact);
 public:
     double x_nom,x_act,y_nom,y_act;
 };
@@ -40,8 +40,8 @@ private slots:
 
 private:
 
-    QVector <point> *origin_data;
-    QVector <point> *data;
+    QVector <pointV> *origin_data;
+    QVector <pointV> *data;
     Ui::MainWindow *ui;
     void paintEvent(QPaintEvent *);
     QVector <QPair <double,double> > *nom_control_points;

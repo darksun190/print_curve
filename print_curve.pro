@@ -24,3 +24,4 @@ LIBS            += C:\sunxin\libs\sp_xmlread\release\libsp_xmlread.a
 
 RESOURCES += \
     logo.qrc
+QT += printsupport

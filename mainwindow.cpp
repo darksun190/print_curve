@@ -1,13 +1,13 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-point::point(double xnom, double ynom, double xact, double yact)
+pointV::pointV(double xnom, double ynom, double xact, double yact)
 {
     this->x_nom=xnom;
     this->y_nom=ynom;
     this->x_act=xact;
     this->y_act=yact;
 }
-point::point()
+pointV::pointV()
 {}
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -47,8 +47,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->pushButton->move(papersize.width()-right_margin+5,papersize.height()-200);
 
     //get the data from calypso
-    data = new QVector<point>();
-    origin_data = new QVector<point>();
+    data = new QVector<pointV>();
+    origin_data = new QVector<pointV>();
     QDir base_dir ("../../home/om/"); //~/zeiss/home/om dir
     QDir trans_dir ("../tmp/"); //dir for files;
     QFile ele_xml_file (QString("%1/ElementsToSpecialProgram.xml").arg(trans_dir.absolutePath()));
@@ -56,7 +56,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     Sp_xmlread xml_info("../tmp/");
 
-    QString fileName = xml_info.names.at(0);
+    QString fileName = xml_info.names.at(0).Identifier;
 
     QFile nom_file(QString("../tmp/%1_NomPoints.txt").arg(fileName));
     QFile act_file(QString("../tmp/%1_ActPoints.txt").arg(fileName));
@@ -90,7 +90,7 @@ MainWindow::MainWindow(QWidget *parent) :
             xa = buf2.mid(index_space+1,buf2.indexOf(" ",index_space+1)-index_space-1).toDouble();
             index_space = buf2.indexOf(" ",index_space+1);
             ya = buf2.mid(index_space+1,buf2.indexOf(" ",index_space+1)-index_space-1).toDouble();
-            origin_data->push_back(point(xn,yn,xa,ya));
+            origin_data->push_back(pointV(xn,yn,xa,ya));
        }
     }
 
@@ -134,7 +134,7 @@ MainWindow::MainWindow(QWidget *parent) :
         //start translate
         for(int i=0;i<origin_data->size();++i)
         {
-            point temp((origin_data->at(i).x_nom+curve_translate.x())*scale_x,
+            pointV temp((origin_data->at(i).x_nom+curve_translate.x())*scale_x,
                         (origin_data->at(i).y_nom+curve_translate.y())*scale_y,
                         (origin_data->at(i).x_act+curve_translate.x())*scale_x,
                         (origin_data->at(i).y_act+curve_translate.y())*scale_y
@@ -319,6 +319,17 @@ void MainWindow::paintEvent(QPaintEvent *)
                             .arg(origin_data->at(i).y_nom)
                             .arg( QString::number(origin_data->at(i).y_act,'f',4)));
     }
+    painter.translate(0,90);
+    for (int i=14;i<28;++i)  //just for test, offical release need auto adjust
+    {
+        painter.drawText(10+(i-14)*60,10,50,150,Qt::AlignCenter,
+                         QString("%1\n%2\n%3\n%4")
+                            .arg(i+1)
+                            .arg(origin_data->at(i).x_nom)
+                            .arg(origin_data->at(i).y_nom)
+                            .arg( QString::number(origin_data->at(i).y_act,'f',4)));
+    }
+
     //draw a header and LOGO
     painter.restore();
     painter.drawPixmap(header_area.x()+20,header_area.y()+1,header_area.height()-2,header_area.height()-2,*logo);
@@ -402,6 +413,17 @@ void MainWindow::on_pushButton_clicked()
                             .arg(origin_data->at(i).y_nom)
                          .arg( QString::number(origin_data->at(i).y_act,'f',4)));
     }
+    painter.translate(0,90);
+    for (int i=14;i<28;++i)  //just for test, offical release need auto adjust
+    {
+        painter.drawText(10+(i-14)*60,10,50,150,Qt::AlignCenter,
+                         QString("%1\n%2\n%3\n%4")
+                            .arg(i+1)
+                            .arg(origin_data->at(i).x_nom)
+                            .arg(origin_data->at(i).y_nom)
+                            .arg( QString::number(origin_data->at(i).y_act,'f',4)));
+    }
+
     //draw a header and LOGO
     painter.restore();
     painter.drawPixmap(header_area.x()+20,header_area.y()+1,header_area.height()-2,header_area.height()-2,*logo);
