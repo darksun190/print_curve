@@ -37,6 +37,9 @@ private:
     void paintEvent(QPaintEvent *);
     QVector <QPair <double,double> > *nom_control_points;
     QVector <QPair <double,double> > *act_control_points;
+    QVector <QPair <double,double> > *ut_control_points;
+    QVector <QPair <double,double> > *lt_control_points;
+
     QVector <point> *nom_data;
     QVector <point> *act_data;
 
@@ -46,10 +49,14 @@ private:
 
     QPainterPath *nom_path;
     QPainterPath *act_path;
+    QPainterPath *ut_path;
+    QPainterPath *lt_path;
+
     QVector <QPointF> nom_points;
 
     int size;       //point size
     //value in pixel for printer margin
+    Sp_xmlread *xml_info;
 
     qreal left_margin;
     qreal right_margin;
